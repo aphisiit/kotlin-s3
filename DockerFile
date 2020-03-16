@@ -1,0 +1,4 @@
+FROM openjdk:latest
+EXPOSE 9002
+ADD /build/libs/kotlins3-0.0.2.jar kotlins3.jar
+ENTRYPOINT ["java", "-jar", "kotlins3.jar"]
