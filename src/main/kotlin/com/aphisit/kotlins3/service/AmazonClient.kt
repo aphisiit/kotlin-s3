@@ -42,10 +42,6 @@ class AmazonClient {
         return convFile
     }
 
-    private fun generateFileName(multiPart: MultipartFile): String {
-        return Date().getTime().toString() + "-" + multiPart.originalFilename!!.replace(" ", "_")
-    }
-
     private fun uploadFileTos3bucket(fileName: String, file: File) {
         amazonS3.putObject(PutObjectRequest(bucketName, fileName, file)
                 .withCannedAcl(CannedAccessControlList.PublicRead))
@@ -55,7 +51,7 @@ class AmazonClient {
         var fileUrl = ""
         try {
             val file: File = convertMultiPartToFile(multipartFile)
-            val fileName: String = generateFileName(multipartFile)
+            val fileName: String = multipartFile.originalFilename!!
             fileUrl = "$endpointUrl/$bucketName/$fileName"
             uploadFileTos3bucket(fileName, file)
             file.delete()
