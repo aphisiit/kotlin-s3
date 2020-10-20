@@ -2,6 +2,7 @@ package com.aphisit.kotlins3.controller
 
 import com.amazonaws.services.s3.model.ObjectListing
 import com.aphisit.kotlins3.service.AmazonClient
+import io.swagger.v3.oas.annotations.Operation
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -60,13 +61,25 @@ class S3Controller {
         return amazonClient.deleteObject(objectName)
     }
 
-    @DeleteMapping("/deleteFolder")
-    fun deleteFolder() : String? {
-        try {
-            amazonClient.deleteFolder();
-            return "OK"
+    @Operation(summary = "Delete folder by Java AWS SDK", description = "File in prefix path will be deleted")
+    @DeleteMapping("/deleteFolderViaSDK")
+    fun deleteFolderViaSDK(@RequestParam("prefixPath") prefixPath: String) : String? {
+        return try {
+            amazonClient.deleteFolderWithAWSSDK(prefixPath);
+            "OK"
         }catch (e: Exception){
-            return e.message
+            e.message
+        }
+    }
+
+    @Operation(summary = "Delete folder by AWS CLI", description = "File in prefix path will be deleted")
+    @DeleteMapping("/deleteFolderViaCLI")
+    fun deleteFolderViaCLI(@RequestParam("prefixPath") prefixPath: String) : String? {
+        return try {
+            amazonClient.deleteFolderWithAWSCLI(prefixPath);
+            "OK"
+        }catch (e: Exception){
+            e.message
         }
     }
 
