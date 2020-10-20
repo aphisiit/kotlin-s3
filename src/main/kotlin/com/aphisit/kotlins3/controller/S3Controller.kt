@@ -59,4 +59,15 @@ class S3Controller {
     fun deleteObject(@RequestParam("objectName") objectName: String) : String {
         return amazonClient.deleteObject(objectName)
     }
-}
+
+    @DeleteMapping("/deleteFolder")
+    fun deleteFolder() : String? {
+        try {
+            amazonClient.deleteFolder();
+            return "OK"
+        }catch (e: Exception){
+            return e.message
+        }
+    }
+
+ }
