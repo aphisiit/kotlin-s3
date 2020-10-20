@@ -157,6 +157,28 @@ class AmazonClient {
         }
     }
 
+    fun deleteFolder() {
+        logger.info("Delete start : ${Date()}")
+        try{
+            val keys = ArrayList<DeleteObjectsRequest.KeyVersion>()
+            val listObjectRequest = ListObjectsRequest().withBucketName(bucketName).withPrefix("test-folder")
+            val objectListing = amazonS3.listObjects(listObjectRequest)
+
+            for(x in objectListing.objectSummaries){
+                keys.add(DeleteObjectsRequest.KeyVersion(x.key))
+            }
+
+            val deleteObjectsRequest = DeleteObjectsRequest(bucketName).withKeys(keys)
+
+            amazonS3.deleteObjects(deleteObjectsRequest)
+
+        }catch (e: Exception) {
+            logger.error(e.message)
+        }
+        logger.info("Delete end : ${Date()}")
+    }
+
+
     @SuppressWarnings("Duplicates")
     fun convertS3ObjectToInputStream(objectName: String?) : InputStream? {
 
