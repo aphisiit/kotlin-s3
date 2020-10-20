@@ -61,19 +61,19 @@ class AmazonClient {
         return fileUrl
     }
 
-    fun listAllObject(bucket : String? = bucketName) : ObjectListing {
+    fun listAllObject(bucket: String? = bucketName) : ObjectListing {
         logger.info("list in bucket : $bucket")
         return amazonS3.listObjects(bucket)
     }
 
-    fun objectDoseExits(name : String? = null) : String {
-        return "file name $name does exits : ${amazonS3.doesObjectExist(bucketName,name)}"
+    fun objectDoseExits(name: String? = null) : String {
+        return "file name $name does exits : ${amazonS3.doesObjectExist(bucketName, name)}"
     }
 
-    fun checkingFileExitsInList(list : List<String>) : List<String> {
+    fun checkingFileExitsInList(list: List<String>) : List<String> {
         val result = ArrayList<String>()
         for(l in list) {
-            if(amazonS3.doesObjectExist(bucketName,l)){
+            if(amazonS3.doesObjectExist(bucketName, l)){
                 result.add(l)
                 logger.info("fileName : $l is exits on S3")
             }
@@ -81,23 +81,23 @@ class AmazonClient {
         return result
     }
 
-    fun downloadSingleObject(objectName : String? = null) : StreamingResponseBody? {
+    fun downloadSingleObject(objectName: String? = null) : StreamingResponseBody? {
         return try {
             val finalObject = amazonS3.getObject(bucketName, objectName)?.objectContent
             logger.info("get ObjectName : $objectName success")
             finalObject?.let { convertInputStreamToStreamResponseBody(it) }!!
-        }catch (e : Exception) {
+        }catch (e: Exception) {
             logger.error("something went wrong with ojectName : $objectName")
             logger.error("error : ${e.message}")
             null
         }
     }
 
-    fun deleteObject(objectName : String? = null) : String {
+    fun deleteObject(objectName: String? = null) : String {
         return try {
-            amazonS3.deleteObject(bucketName,objectName)
+            amazonS3.deleteObject(bucketName, objectName)
             "Delete file $bucketName/$objectName is successfully"
-        }catch (e : Exception) {
+        }catch (e: Exception) {
             logger.error("${e.message}")
             logger.error("${e.stackTrace}")
             "Can't delete $bucketName/$objectName cause ${e.message}"
@@ -118,7 +118,7 @@ class AmazonClient {
         return amazonS3.getObject(bucketName, fileName)
     }
 
-    fun downloadObject(objectName : List<String?>) : StreamingResponseBody {
+    fun downloadObject(objectName: List<String?>) : StreamingResponseBody {
         return  downloadAsZipFiles(objectName)
     }
 
@@ -150,29 +150,52 @@ class AmazonClient {
             return convertInputStreamToStreamResponseBody(FileInputStream(tempZipFile))
 
 
-        }catch (e : Exception) {
+        }catch (e: Exception) {
             logger.error("${e.message}")
             e.printStackTrace()
             return StreamingResponseBody {}
         }
     }
 
-    fun deleteFolder() {
+    fun deleteFolderWithAWSSDK(prefixPath: String) {
+        // Todo : Delete file with AWS SDK
         logger.info("Delete start : ${Date()}")
         try{
-            val keys = ArrayList<DeleteObjectsRequest.KeyVersion>()
-            val listObjectRequest = ListObjectsRequest().withBucketName(bucketName).withPrefix("test-folder")
-            val objectListing = amazonS3.listObjects(listObjectRequest)
+            var keys: List<DeleteObjectsRequest.KeyVersion>
+            val listObjectRequest = ListObjectsV2Request().withBucketName(bucketName).withPrefix(prefixPath)
+            var objectListing : ListObjectsV2Result
 
-            for(x in objectListing.objectSummaries){
-                keys.add(DeleteObjectsRequest.KeyVersion(x.key))
-            }
+            do {
+                objectListing = amazonS3.listObjectsV2(listObjectRequest)
+                keys = ArrayList<DeleteObjectsRequest.KeyVersion>()
 
-            val deleteObjectsRequest = DeleteObjectsRequest(bucketName).withKeys(keys)
+                for (x in objectListing.objectSummaries) {
+                    keys.add(DeleteObjectsRequest.KeyVersion(x.key))
+                }
+                logger.info("keys length : ${keys.size}")
+                val deleteObjectsRequest = DeleteObjectsRequest(bucketName).withKeys(keys)
 
-            amazonS3.deleteObjects(deleteObjectsRequest)
+                amazonS3.deleteObjects(deleteObjectsRequest)
+
+            }while (objectListing.objectSummaries.size > 0)
 
         }catch (e: Exception) {
+            logger.error(e.message)
+        }
+        logger.info("Delete end : ${Date()}")
+    }
+
+    fun deleteFolderWithAWSCLI(prefixPath: String) {
+        // Todo : Delete file with AWS CLI
+        logger.info("Delete start : ${Date()}")
+        try{
+            val process = Runtime.getRuntime().exec("aws s3 rm s3://$bucketName/$prefixPath --recursive")
+            val bufferedReader = BufferedReader(InputStreamReader(process.inputStream))
+            var temp: String
+            while(bufferedReader.readLine().also { temp = it } != null){
+                logger.info(temp)
+            }
+        }catch (e: Exception){
             logger.error(e.message)
         }
         logger.info("Delete end : ${Date()}")
@@ -185,8 +208,8 @@ class AmazonClient {
         val finalObject : S3ObjectInputStream
 
         try {
-            finalObject = amazonS3.getObject(bucketName,objectName)?.objectContent ?: return null
-        }catch (e : Exception) {
+            finalObject = amazonS3.getObject(bucketName, objectName)?.objectContent ?: return null
+        }catch (e: Exception) {
             logger.error("something went wrong with objectName : $objectName")
             logger.error("error : ${e.message}")
             return null
